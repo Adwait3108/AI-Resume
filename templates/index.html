@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 0;
+            right: 0;
+            color: white;
+            text-align: right;
+        }
+
+        .user-info button {
+            margin-left: 10px;
+            padding: 8px 20px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .user-info button:hover {
+            background: white;
+            color: #667eea;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: none;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .tab-button {
+            padding: 12px 30px;
+            background: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .tab-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .tab-button.active {
+            background: #764ba2;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .score-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .result-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .result-section li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .result-section li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .course-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #764ba2;
+        }
+
+        .assessment-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .assessment-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .assessment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+        }
+
+        .question-container {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .option {
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .option:hover {
+            border-color: #667eea;
+            background: #f0f0ff;
+        }
+
+        .option.selected {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+        .submit-button {
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .submit-button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #c62828;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userName"></span>
+                <button onclick="logout()">Logout</button>
+            </div>
+            <h1>🤖 AI Resume Analyzer</h1>
+            <p>Get intelligent feedback and skill assessments powered by Gemini AI</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-container">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+            </div>
+
+            <div id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                <button class="submit-btn" onclick="login()">Login</button>
+                <div id="loginError"></div>
+            </div>
+
+            <div id="signupForm" style="display: none;">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="signupName" placeholder="Enter your name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" placeholder="Create a password" required>
+                </div>
+                <button class="submit-btn" onclick="signup()">Sign Up</button>
+                <div id="signupError"></div>
+            </div>
+        </div>
+
+        <!-- Main Content (shown after login) -->
+        <div id="mainContent" class="main-content">
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('dashboard')">Dashboard</button>
+                <button class="tab-button" onclick="switchTab('resume')">Resume Analysis</button>
+                <button class="tab-button" onclick="switchTab('assessments')">Skill Assessments</button>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <div class="dashboard-card">
+                    <h2 style="color: #667eea; margin-bottom: 20px;">📊 Your Latest Assessment Scores</h2>
+                    <div id="scoresContainer">
+                        <p>Loading your scores...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Analysis Tab -->
+            <div id="resume-tab" class="tab-content">
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📄</div>
+                    <h2>Upload Your Resume</h2>
+                    <p>Drag and drop your resume here or click to browse</p>
+                    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">Supported formats: PDF, TXT</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt" onchange="handleFileSelect(event)">
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing your resume with AI...</p>
+                </div>
+
+                <div id="analysisResult"></div>
+            </div>
+
+            <!-- Skill Assessments Tab -->
+            <div id="assessments-tab" class="tab-content">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 30px;">Choose an Assessment</h2>
+                <div class="assessment-list" id="assessmentList"></div>
+                <div id="assessmentContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentAssessment = null;
+        let currentAnswers = {};
+
+        // Check authentication on page load
+        checkAuth();
+
+        function checkAuth() {
+            fetch('/api/auth/check', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    showMainContent();
+                    loadScores();
+                } else {
+                    showAuth();
+                }
+            })
+            .catch(() => {
+                showAuth();
+            });
+        }
+
+        function showAuth() {
+            document.getElementById('authSection').style.display = 'block';
+            document.getElementById('mainContent').classList.remove('active');
+            document.getElementById('userInfo').style.display = 'none';
+        }
+
+        function showMainContent() {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('mainContent').classList.add('active');
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('userName').textContent = `Welcome, ${currentUser.name || currentUser.email}!`;
+            loadAssessments();
+        }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            if (tab === 'login') {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('signupForm').style.display = 'none';
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+            } else {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('signupForm').style.display = 'block';
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+            }
+        }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentUser = data.user;
+                    showMainContent();
+                    loadScores();
+                } else {
+                    errorDiv.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                errorDiv.innerHTML = `<div class="error">Login failed: ${error.message}</div>`;
+            });
+        }
+
+        function signup() {
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const errorDiv = document.getElementById('signupError');
+
+            fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ name, email, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentUser = data.user;
+                    showMainContent();
+                    loadScores();
+                } else {
+                    errorDiv.innerHTML = `<div class="error">${data.error}</div>`;
+                }
+            })
+            .catch(error => {
+                errorDiv.innerHTML = `<div class="error">Signup failed: ${error.message}</div>`;
+            });
+        }
+
+        function logout() {
+            fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            })
+            .then(() => {
+                currentUser = null;
+                showAuth();
+            });
+        }
+
+        function loadScores() {
+            fetch('/api/user/scores', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('scoresContainer');
+                if (data.scores && data.scores.length > 0) {
+                    container.innerHTML = data.scores.map(score => `
+                        <div class="score-item">
+                            <div>
+                                <strong>${score.assessment_title}</strong>
+                                <p style="color: #666; font-size: 0.9em; margin-top: 5px;">
+                                    ${score.correct_count} out of ${score.total_questions} correct
+                                </p>
+                            </div>
+                            <div class="score-value">${score.score}%</div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p style="color: #666;">No assessment scores yet. Take an assessment to see your scores here!</p>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('scoresContainer').innerHTML = '<p style="color: #c62828;">Error loading scores</p>';
+            });
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            if (tab === 'dashboard') {
+                document.getElementById('dashboard-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[0].classList.add('active');
+                loadScores();
+            } else if (tab === 'resume') {
+                document.getElementById('resume-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[1].classList.add('active');
+            } else {
+                document.getElementById('assessments-tab').classList.add('active');
+                document.querySelectorAll('.tab-button')[2].classList.add('active');
+            }
+        }
+
+        function loadAssessments() {
+            fetch('/api/assessments', {
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    showAuth();
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.assessments) {
+                    const listDiv = document.getElementById('assessmentList');
+                    listDiv.innerHTML = data.assessments.map(assessment => `
+                        <div class="assessment-card" onclick="loadAssessment('${assessment.id}')">
+                            <h3>${assessment.title}</h3>
+                            <p>Test your knowledge with MCQ questions</p>
+                        </div>
+                    `).join('');
+                }
+            });
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('analysisResult').innerHTML = '';
+
+            fetch('/api/upload-resume', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    showAuth();
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loading').style.display = 'none';
+                if (data.error) {
+                    document.getElementById('analysisResult').innerHTML = `<div class="error">${data.error}</div>`;
+                } else {
+                    displayAnalysis(data.analysis);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('analysisResult').innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            });
+        }
+
+        function displayAnalysis(analysis) {
+            const resultDiv = document.getElementById('analysisResult');
+            let html = '';
+
+            if (analysis.error) {
+                html = `<div class="error">${analysis.error}</div>`;
+            } else {
+                html = `
+                    <div class="result-section">
+                        <h3>📊 Overall Assessment</h3>
+                        <p>${analysis.overall_assessment || 'Analysis completed'}</p>
+                    </div>
+                    <div class="result-section">
+                        <h3>✨ Strengths</h3>
+                        <ul>${(analysis.strengths || []).map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                    <div class="result-section">
+                        <h3>📈 Areas for Improvement</h3>
+                        <ul>${(analysis.improvements || []).map(i => `<li>${i}</li>`).join('')}</ul>
+                    </div>
+                    <div class="result-section">
+                        <h3>🎯 Missing Skills</h3>
+                        <ul>${(analysis.missing_skills || []).map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                    <div class="result-section">
+                        <h3>📚 Recommended Courses</h3>
+                        ${(analysis.recommended_courses || []).map(course => `
+                            <div class="course-card">
+                                <h4>${course.name}</h4>
+                                <p><strong>Description:</strong> ${course.description}</p>
+                                <p><strong>Why recommended:</strong> ${course.reason}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="result-section">
+                        <h3>💼 Career Suggestions</h3>
+                        <ul>${(analysis.career_suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                `;
+            }
+
+            resultDiv.innerHTML = html;
+        }
+
+        function loadAssessment(assessmentId) {
+            currentAssessment = assessmentId;
+            currentAnswers = {};
+            
+            fetch(`/api/assessments/${assessmentId}`, {
+                credentials: 'include'
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    showAuth();
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+                const contentDiv = document.getElementById('assessmentContent');
+                contentDiv.innerHTML = `
+                    <h2 style="text-align: center; color: #667eea; margin: 30px 0;">${data.title}</h2>
+                    <div id="questionsContainer"></div>
+                    <div style="text-align: center;">
+                        <button class="submit-button" onclick="submitAssessment()">Submit Assessment</button>
+                    </div>
+                `;
+
+                const questionsDiv = document.getElementById('questionsContainer');
+                questionsDiv.innerHTML = data.questions.map((q) => `
+                    <div class="question-container">
+                        <h3>Question ${q.id}: ${q.question}</h3>
+                        ${q.options.map((option, oIndex) => `
+                            <div class="option" onclick="selectAnswer(${q.id}, ${oIndex})" id="opt-${q.id}-${oIndex}">
+                                ${String.fromCharCode(65 + oIndex)}. ${option}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+
+                document.getElementById('assessmentList').style.display = 'none';
+            });
+        }
+
+        function selectAnswer(questionId, optionIndex) {
+            currentAnswers[questionId] = optionIndex;
+            const questionContainer = document.querySelector(`#opt-${questionId}-0`).closest('.question-container');
+            questionContainer.querySelectorAll('.option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById(`opt-${questionId}-${optionIndex}`).classList.add('selected');
+        }
+
+        function submitAssessment() {
+            if (!currentAssessment) return;
+
+            fetch(`/api/assessments/${currentAssessment}/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ answers: currentAnswers })
+            })
+            .then(response => {
+                if (response.status === 401) {
+                    showAuth();
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data) {
+                    displayResults(data);
+                    loadScores(); // Refresh scores
+                }
+            });
+        }
+
+        function displayResults(data) {
+            const contentDiv = document.getElementById('assessmentContent');
+            let html = `
+                <div class="score-display">
+                    <h2>Your Score: ${data.score}%</h2>
+                    <p>You got ${data.correct_count} out of ${data.total_questions} questions correct</p>
+                </div>
+            `;
+
+            data.results.forEach(result => {
+                const optionClass = result.is_correct ? 'correct' : 'incorrect';
+                html += `
+                    <div class="question-container">
+                        <h3>Question ${result.question_id}: ${result.question}</h3>
+                        <div class="option ${optionClass}">
+                            Your Answer: ${String.fromCharCode(65 + result.user_answer)}. ${result.correct_option}
+                            ${result.is_correct ? ' ✓ Correct' : ' ✗ Incorrect'}
+                        </div>
+                        ${!result.is_correct ? `
+                            <div class="option correct">
+                                Correct Answer: ${String.fromCharCode(65 + result.correct_answer)}. ${result.correct_option}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            html += `
+                <div style="text-align: center; margin-top: 30px;">
+                    <button class="submit-button" onclick="document.getElementById('assessmentList').style.display='grid'; document.getElementById('assessmentContent').innerHTML=''; loadAssessments();">Take Another Assessment</button>
+                </div>
+            `;
+
+            contentDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
