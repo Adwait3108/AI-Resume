@@ -223,60 +223,87 @@ def extract_text_from_pdf(file):
         return f"Error reading PDF: {str(e)}"
 
 def analyze_resume_with_gemini(resume_text):
+    """Analyze resume using Gemini API"""
     if not GEMINI_API_KEY:
-        return {'error': 'Gemini API key not configured'}
-
+        return {
+            'error': 'Gemini API key not configured. Please set GEMINI_API_KEY environment variable.'
+        }
+    
+    # Try different model names in order of preference (must use 'models/' prefix)
     model_names = [
-        "models/gemini-2.5-flash",   # fast + cheap
-        "models/gemini-2.5-pro",     # best quality
-        "models/gemini-2.0-flash"    # stable fallback
+        'models/gemini-2.5-flash',
+        'models/gemini-2.5-pro',
+        'models/gemini-2.0-flash',
     ]
+    
+    prompt = f"""Analyze the following resume and provide:
+1. Overall assessment and strengths
+2. Areas for improvement
+3. Missing skills or gaps
+4. Recommended courses (3-5 specific courses with brief descriptions)
+5. Career suggestions
 
-    prompt = f"""
-Analyze the following resume and return STRICT JSON only.
-
-Resume:
+Resume Content:
 {resume_text}
 
-JSON format:
+Please format your response as JSON with the following structure:
 {{
-  "overall_assessment": "",
-  "strengths": [],
-  "improvements": [],
-  "missing_skills": [],
-  "recommended_courses": [
-    {{
-      "name": "",
-      "description": "",
-      "reason": ""
-    }}
-  ],
-  "career_suggestions": []
-}}
-"""
-
+    "overall_assessment": "Brief overall assessment",
+    "strengths": ["strength1", "strength2", "strength3"],
+    "improvements": ["improvement1", "improvement2", "improvement3"],
+    "missing_skills": ["skill1", "skill2"],
+    "recommended_courses": [
+        {{
+            "name": "Course Name",
+            "description": "Brief description",
+            "reason": "Why this course is recommended"
+        }}
+    ],
+    "career_suggestions": ["suggestion1", "suggestion2"]
+}}"""
+    
+    # Try each model until one works
     last_error = None
-
     for model_name in model_names:
         try:
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
-            text = response.text.strip()
-
-            # strip markdown if model adds it
-            if "```" in text:
-                text = text.split("```")[1]
-
-            return json.loads(text)
-
+            response_text = response.text
+            
+            # Try to extract JSON from response
+            try:
+                # Remove markdown code blocks if present
+                if '```json' in response_text:
+                    response_text = response_text.split('```json')[1].split('```')[0]
+                elif '```' in response_text:
+                    response_text = response_text.split('```')[1].split('```')[0]
+                
+                analysis = json.loads(response_text.strip())
+                return analysis
+            except json.JSONDecodeError:
+                # If JSON parsing fails, return formatted text response
+                return {
+                    'overall_assessment': response_text,
+                    'strengths': [],
+                    'improvements': [],
+                    'missing_skills': [],
+                    'recommended_courses': [],
+                    'career_suggestions': []
+                }
         except Exception as e:
             last_error = str(e)
-
-    return {
-        "error": "All Gemini models failed",
-        "details": last_error
-    }
-
+            continue  # Try next model
+    
+    # If all models failed, try to list available models
+    try:
+        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        return {
+            'error': f'All models failed. Available models with generateContent: {", ".join(available_models[:10])}. Last error: {last_error}'
+        }
+    except:
+        return {
+            'error': f'Error analyzing resume: {last_error}. Please check your API key and ensure you have access to Gemini models.'
+        }
 
 # Authentication Routes
 @app.route('/api/auth/signup', methods=['POST'])
@@ -558,4 +585,6 @@ def submit_assessment(assessment_id):
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Allow overriding port via environment variable to avoid conflicts with macOS AirPlay on 5000
+    port = int(os.getenv('PORT', '5000'))
+    app.run(debug=True, port=port)
