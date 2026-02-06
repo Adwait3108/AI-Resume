@@ -21,7 +21,7 @@ echo "Using: $PYTHON_CMD"
 $PYTHON_CMD --version
 
 # Set API key
-export GEMINI_API_KEY='AIzaSyDcPUea6pTtKCd52jom0blUzZokHBafFiA'
+export GEMINI_API_KEY=''
 
 # Test imports first
 echo ""
