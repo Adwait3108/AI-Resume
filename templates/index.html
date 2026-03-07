@@ -1,901 +1,731 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Resume Analyzer</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeAI — Intelligent Career Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060608;--bg2:#0d0d12;
+  --surface:rgba(255,255,255,0.04);--surface2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0efe8;--text2:rgba(240,239,232,0.55);--text3:rgba(240,239,232,0.3);
+  --gold:#c9a84c;--gold2:#e8c97a;--teal:#3dd9c5;--red:#ff5e5e;--green:#4ade80;--blue:#60a5fa;
+  --glow:rgba(201,168,76,0.15);--radius:14px;--sidebar-w:72px;--sidebar-expanded:240px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;cursor:none;}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+/* CURSOR */
+#cursor{position:fixed;width:8px;height:8px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);mix-blend-mode:screen;transition:width .2s,height .2s;}
+#cursor-ring{position:fixed;width:32px;height:32px;border:1px solid rgba(201,168,76,0.5);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .25s,height .25s;}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+/* BG CANVAS */
+#bgCanvas{position:fixed;inset:0;z-index:0;opacity:0.5;}
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-            position: relative;
-        }
+/* LAYOUT */
+.shell{position:relative;z-index:1;display:flex;min-height:100vh;}
 
-        .header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
+/* SIDEBAR */
+.sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:rgba(6,6,8,0.85);backdrop-filter:blur(24px);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:24px 0;z-index:200;transition:width 0.35s cubic-bezier(0.34,1.56,0.64,1);overflow:hidden;}
+.sidebar:hover{width:var(--sidebar-expanded);align-items:flex-start;}
+.logo-wrap{display:flex;align-items:center;gap:10px;padding:0 16px;margin-bottom:28px;width:100%;}
+.sidebar-logo{width:40px;height:40px;background:linear-gradient(135deg,var(--gold) 0%,#7a5c1e 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:1.1rem;color:var(--bg);font-weight:700;flex-shrink:0;box-shadow:0 4px 20px rgba(201,168,76,0.3);}
+.sidebar-brand-text{display:none;flex-direction:column;}
+.sidebar:hover .sidebar-brand-text{display:flex;}
+.brand-name{font-family:'Instrument Serif',serif;font-size:1rem;color:var(--text);white-space:nowrap;}
+.brand-sub{font-size:0.62rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;white-space:nowrap;}
+.nav-section{flex:1;width:100%;display:flex;flex-direction:column;gap:4px;padding:0 12px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;border:none;background:none;color:var(--text2);font-family:'Geist',sans-serif;font-size:0.82rem;font-weight:500;white-space:nowrap;width:100%;text-align:left;position:relative;transition:all 0.2s;}
+.nav-item svg{flex-shrink:0;width:18px;height:18px;}
+.nav-item:hover{color:var(--text);background:var(--surface2);}
+.nav-item.active{color:var(--gold);background:rgba(201,168,76,0.08);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold);border-radius:0 3px 3px 0;}
+.sidebar-bottom{width:100%;padding:0 12px;display:flex;flex-direction:column;gap:4px;}
+.user-mini{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface);border:1px solid var(--border);cursor:default;transition:all 0.2s;white-space:nowrap;overflow:hidden;}
+.user-mini:hover{border-color:var(--border2);background:var(--surface2);}
+.avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold) 0%,#7a5c1e 100%);display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:0.75rem;color:var(--bg);font-weight:700;flex-shrink:0;}
+.user-name-sm{font-size:0.78rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;}
+.user-role-sm{font-size:0.65rem;color:var(--text3);}
+.logout-icon{margin-left:auto;background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;flex-shrink:0;transition:color 0.2s;}
+.logout-icon:hover{color:var(--red);}
 
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
-        .user-info {
-            position: absolute;
-            top: 0;
-            right: 0;
-            color: white;
-            text-align: right;
-        }
+/* AUTH */
+#authSection{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.auth-bg-ring{position:absolute;border-radius:50%;border:1px solid rgba(201,168,76,0.07);animation:ringPulse 6s ease-in-out infinite;}
+@keyframes ringPulse{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.5;}50%{transform:translate(-50%,-50%) scale(1.04);opacity:1;}}
+.auth-content{position:relative;z-index:2;width:100%;max-width:400px;padding:20px;}
+.auth-top{text-align:center;margin-bottom:32px;}
+.auth-logo{width:52px;height:52px;background:linear-gradient(135deg,var(--gold) 0%,#7a5c1e 100%);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:1.4rem;color:var(--bg);margin:0 auto 16px;box-shadow:0 8px 32px rgba(201,168,76,0.25);}
+.auth-title{font-family:'Instrument Serif',serif;font-size:2rem;line-height:1.15;color:var(--text);margin-bottom:8px;}
+.auth-title em{color:var(--gold);font-style:italic;}
+.auth-sub{font-size:0.85rem;color:var(--text2);line-height:1.6;}
+.auth-card{background:rgba(13,13,18,0.92);backdrop-filter:blur(32px);border:1px solid var(--border2);border-radius:20px;padding:32px;box-shadow:0 32px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05);}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border-radius:8px;padding:3px;margin-bottom:24px;border:1px solid var(--border);}
+.auth-tab{padding:8px;background:none;border:none;border-radius:6px;font-family:'Geist',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.auth-tab.active{background:rgba(201,168,76,0.12);color:var(--gold);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.field input{width:100%;padding:11px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:'Geist',sans-serif;font-size:0.88rem;color:var(--text);outline:none;transition:all 0.2s;}
+.field input:focus{border-color:var(--gold);background:rgba(201,168,76,0.04);box-shadow:0 0 0 3px rgba(201,168,76,0.1);}
+.field input::placeholder{color:var(--text3);}
+.btn-primary{width:100%;padding:13px;background:linear-gradient(135deg,var(--gold) 0%,#9a6e1e 100%);color:var(--bg);border:none;border-radius:8px;font-family:'Geist',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;position:relative;overflow:hidden;}
+.btn-primary::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);transition:left 0.5s;}
+.btn-primary:hover::before{left:100%;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,0.35);}
 
-        .user-info button {
-            margin-left: 10px;
-            padding: 8px 20px;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid white;
-            border-radius: 20px;
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+/* TOPBAR */
+.topbar{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid var(--border);background:rgba(6,6,8,0.7);backdrop-filter:blur(20px);position:sticky;top:0;z-index:50;}
+.topbar-left{display:flex;flex-direction:column;gap:2px;}
+.topbar-eyebrow{font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);font-weight:500;}
+.topbar-title{font-family:'Instrument Serif',serif;font-size:1.1rem;color:var(--text);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(61,217,197,0.07);border:1px solid rgba(61,217,197,0.18);border-radius:20px;font-size:0.7rem;font-weight:600;color:var(--teal);letter-spacing:0.05em;}
+.pulse-dot{width:6px;height:6px;background:var(--teal);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);}}
 
-        .user-info button:hover {
-            background: white;
-            color: #667eea;
-        }
+/* MAIN CONTENT */
+#mainContent{display:none;flex-direction:column;min-height:100vh;}
+#mainContent.active{display:flex;}
+.tab-content{display:none;animation:fadeIn 0.4s ease;}
+.tab-content.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.page-body{padding:32px;}
 
-        .auth-container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            max-width: 400px;
-            margin: 0 auto;
-        }
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;position:relative;overflow:hidden;transition:all 0.25s;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),transparent);opacity:0;transition:opacity 0.25s;}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-2px);}
+.stat-card:hover::after{opacity:1;}
+.stat-label{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;font-weight:600;}
+.stat-value{font-family:'Instrument Serif',serif;font-size:2.4rem;color:var(--text);line-height:1;margin-bottom:6px;}
+.stat-value .unit{font-size:1rem;color:var(--text3);}
+.stat-delta{font-size:0.75rem;color:var(--text3);display:flex;align-items:center;gap:4px;}
+.stat-delta.up{color:var(--green);}
+.stat-icon{position:absolute;top:20px;right:20px;width:36px;height:36px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.scores-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+.section-head h3{font-family:'Instrument Serif',serif;font-size:1rem;color:var(--text);}
+.section-tag{font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 8px;background:rgba(201,168,76,0.1);color:var(--gold);border-radius:4px;border:1px solid rgba(201,168,76,0.2);}
+.score-row{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--border);transition:background 0.2s;}
+.score-row:last-child{border-bottom:none;}
+.score-row:hover{background:var(--surface2);}
+.score-bar-wrap{flex:1;}
+.score-bar-label{display:flex;justify-content:space-between;margin-bottom:6px;}
+.score-bar-name{font-size:0.85rem;font-weight:500;color:var(--text);}
+.score-bar-sub{font-size:0.72rem;color:var(--text3);}
+.score-bar-pct{font-family:'Geist Mono',monospace;font-size:0.85rem;color:var(--gold);font-weight:500;}
+.bar-track{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0%,var(--gold2) 100%);transition:width 1s cubic-bezier(0.34,1.2,0.64,1);width:0%;}
+.score-grade{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:0.75rem;font-weight:700;flex-shrink:0;}
 
-        .auth-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
+/* UPLOAD */
+.upload-wrapper{display:grid;grid-template-columns:1fr 320px;gap:20px;}
+.upload-zone{background:var(--surface);border:2px dashed var(--border2);border-radius:20px;padding:80px 40px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;}
+.upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(201,168,76,0.04) 0%,transparent 70%);opacity:0;transition:opacity 0.3s;}
+.upload-zone:hover{border-color:rgba(201,168,76,0.4);transform:translateY(-3px);}
+.upload-zone:hover::before{opacity:1;}
+.upload-zone.dragover{border-color:var(--gold);background:rgba(201,168,76,0.04);}
+.upload-icon-ring{width:80px;height:80px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:1.8rem;background:var(--surface2);transition:all 0.3s;}
+.upload-zone:hover .upload-icon-ring{border-color:rgba(201,168,76,0.4);box-shadow:0 0 30px rgba(201,168,76,0.1);}
+.upload-zone h3{font-family:'Instrument Serif',serif;font-size:1.5rem;margin-bottom:8px;color:var(--text);}
+.upload-zone p{font-size:0.85rem;color:var(--text2);line-height:1.6;}
+.format-tags{display:flex;gap:6px;justify-content:center;margin-top:14px;}
+.ftag{padding:3px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;font-family:'Geist Mono',monospace;font-size:0.68rem;color:var(--text3);letter-spacing:0.08em;}
+.file-input{display:none;}
+.upload-tips{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:12px;}
+.tips-head{font-family:'Instrument Serif',serif;font-size:1rem;color:var(--text);margin-bottom:4px;}
+.tip-item{display:flex;gap:12px;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);}
+.tip-num{width:22px;height:22px;border-radius:50%;background:rgba(201,168,76,0.12);color:var(--gold);font-size:0.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tip-text{font-size:0.8rem;color:var(--text2);line-height:1.55;}
 
-        .auth-tab {
-            flex: 1;
-            padding: 12px;
-            background: #f0f0f0;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+/* LOADING */
+.loading{display:none;padding:60px 20px;text-align:center;}
+.ai-loader{width:64px;height:64px;margin:0 auto 24px;position:relative;}
+.ai-loader-ring{position:absolute;inset:0;border-radius:50%;border:2px solid transparent;animation:spinRing 1.5s linear infinite;}
+.ai-loader-ring:nth-child(1){border-top-color:var(--gold);animation-duration:1.2s;}
+.ai-loader-ring:nth-child(2){inset:8px;border-right-color:var(--teal);animation-duration:1.8s;animation-direction:reverse;}
+.ai-loader-ring:nth-child(3){inset:16px;border-bottom-color:rgba(201,168,76,0.4);animation-duration:2.4s;}
+@keyframes spinRing{to{transform:rotate(360deg);}}
+.loading-label{font-size:0.85rem;color:var(--text2);font-style:italic;}
+.loading-steps{margin-top:12px;display:flex;flex-direction:column;gap:4px;align-items:center;}
+.loading-step{font-family:'Geist Mono',monospace;font-size:0.72rem;color:var(--text3);opacity:0;animation:stepIn 0.4s ease forwards;}
+@keyframes stepIn{to{opacity:1;}}
 
-        .auth-tab.active {
-            background: #667eea;
-            color: white;
-        }
+/* RESULTS */
+.results-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px;}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:cardIn 0.5s ease both;transition:border-color 0.2s;}
+.result-card:hover{border-color:var(--border2);}
+.result-card.full-width{grid-column:1 / -1;}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(0.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+.result-card:nth-child(1){animation-delay:0.05s;}.result-card:nth-child(2){animation-delay:0.1s;}.result-card:nth-child(3){animation-delay:0.15s;}.result-card:nth-child(4){animation-delay:0.2s;}.result-card:nth-child(5){animation-delay:0.25s;}.result-card:nth-child(6){animation-delay:0.3s;}
+.result-card-header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border);}
+.r-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;background:var(--surface2);border:1px solid var(--border);}
+.r-title{font-family:'Instrument Serif',serif;font-size:0.95rem;color:var(--text);}
+.r-body{padding:16px 18px;}
+.r-body p{font-size:0.84rem;line-height:1.75;color:var(--text2);}
+.r-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+.r-list li{display:flex;gap:10px;font-size:0.82rem;line-height:1.6;color:var(--text2);padding:8px 10px;background:var(--surface2);border-radius:6px;border:1px solid transparent;transition:border-color 0.2s;}
+.r-list li:hover{border-color:var(--border);}
+.r-list li::before{content:'→';color:var(--gold);font-weight:700;flex-shrink:0;font-size:0.78rem;margin-top:2px;}
+.skill-tag{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:rgba(255,94,94,0.08);border:1px solid rgba(255,94,94,0.2);border-radius:6px;font-size:0.75rem;color:var(--red);font-weight:500;margin:3px;}
+.career-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(61,217,197,0.07);border:1px solid rgba(61,217,197,0.18);border-radius:20px;font-size:0.78rem;color:var(--teal);margin:3px;transition:all 0.2s;}
+.career-tag:hover{background:rgba(61,217,197,0.12);}
+.course-item{padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;border-left:3px solid var(--blue);transition:border-left-color 0.2s;}
+.course-item:hover{border-left-color:var(--gold);}
+.course-name{font-family:'Instrument Serif',serif;font-size:0.92rem;color:var(--text);margin-bottom:4px;}
+.course-desc,.course-reason{font-size:0.78rem;color:var(--text3);line-height:1.5;}
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+/* ASSESSMENTS */
+.assess-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.acard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;cursor:pointer;transition:all 0.25s;position:relative;overflow:hidden;animation:cardIn 0.4s ease both;}
+.acard::before{content:'';position:absolute;top:0;left:0;right:0;height:100%;background:linear-gradient(135deg,rgba(201,168,76,0.05) 0%,transparent 60%);opacity:0;transition:opacity 0.25s;}
+.acard:hover{border-color:rgba(201,168,76,0.3);transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,0.4);}
+.acard:hover::before{opacity:1;}
+.acard-icon{font-size:2rem;display:block;margin-bottom:14px;}
+.acard h3{font-family:'Instrument Serif',serif;font-size:1rem;color:var(--text);margin-bottom:6px;}
+.acard p{font-size:0.75rem;color:var(--text3);}
+.acard-arrow{position:absolute;top:20px;right:18px;color:var(--text3);font-size:0.85rem;transition:all 0.2s;}
+.acard:hover .acard-arrow{color:var(--gold);transform:translate(2px,-2px);}
+.acard-tag{display:inline-block;margin-top:10px;padding:2px 8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.15);border-radius:4px;font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);}
 
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-        }
+/* QUIZ */
+.quiz-topbar{display:flex;align-items:center;gap:16px;padding:16px 0 24px;}
+.back-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-family:'Geist',sans-serif;font-size:0.8rem;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.2s;}
+.back-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2);}
+.quiz-progress-bar{flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width 0.5s ease;width:0%;}
+.quiz-count{font-family:'Geist Mono',monospace;font-size:0.75rem;color:var(--text3);}
+.qcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:12px;animation:cardIn 0.3s ease both;}
+.q-num{font-family:'Geist Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.q-text{font-family:'Instrument Serif',serif;font-size:1.05rem;color:var(--text);line-height:1.6;margin-bottom:16px;}
+.option{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.15s;font-size:0.84rem;color:var(--text2);line-height:1.5;}
+.option:hover{border-color:var(--border2);color:var(--text);background:var(--surface2);}
+.option.selected{border-color:rgba(201,168,76,0.5);background:rgba(201,168,76,0.07);color:var(--text);}
+.opt-letter{width:22px;height:22px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:0.65rem;font-weight:700;flex-shrink:0;color:var(--text3);transition:all 0.15s;}
+.option.selected .opt-letter{background:rgba(201,168,76,0.2);border-color:rgba(201,168,76,0.5);color:var(--gold);}
+.quiz-footer{display:flex;justify-content:flex-end;padding:16px 0;}
+.btn-submit{display:flex;align-items:center;gap:8px;padding:12px 28px;background:linear-gradient(135deg,var(--gold) 0%,#9a6e1e 100%);color:var(--bg);border:none;border-radius:8px;font-family:'Geist',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.02em;}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(201,168,76,0.3);}
 
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: all 0.3s;
-        }
+/* SCORE RESULTS */
+.score-hero{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px 40px;text-align:center;margin-bottom:24px;overflow:hidden;}
+.score-hero::before{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;height:300px;background:radial-gradient(circle,rgba(201,168,76,0.06) 0%,transparent 70%);pointer-events:none;}
+.score-circle{width:120px;height:120px;margin:0 auto 20px;position:relative;}
+.score-circle svg{transform:rotate(-90deg);}
+.score-circle-track{fill:none;stroke:rgba(255,255,255,0.04);stroke-width:8;}
+.score-circle-fill{fill:none;stroke:url(#scoreGrad);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1.5s cubic-bezier(0.34,1.2,0.64,1);}
+.score-circle-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.score-big{font-family:'Instrument Serif',serif;font-size:2.4rem;color:var(--text);line-height:1;}
+.score-unit{font-size:0.75rem;color:var(--text3);}
+.score-grade-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:0.8rem;font-weight:700;letter-spacing:0.05em;margin-bottom:16px;}
+.score-hero p{font-size:0.88rem;color:var(--text3);}
+.r-answer-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:10px;animation:cardIn 0.3s ease both;}
+.r-answer-card .q-num{margin-bottom:6px;}
+.r-answer-card .q-text{font-size:0.9rem;margin-bottom:10px;}
+.answer-row{display:flex;gap:8px;flex-wrap:wrap;}
+.a-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;}
+.a-correct{background:rgba(74,222,128,0.08);color:var(--green);border:1px solid rgba(74,222,128,0.2);}
+.a-wrong{background:rgba(255,94,94,0.08);color:var(--red);border:1px solid rgba(255,94,94,0.2);}
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 15px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .submit-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-        }
-
-        .main-content {
-            display: none;
-        }
-
-        .main-content.active {
-            display: block;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            justify-content: center;
-        }
-
-        .tab-button {
-            padding: 12px 30px;
-            background: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .tab-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        }
-
-        .tab-button.active {
-            background: #764ba2;
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .dashboard-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .score-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
-
-        .score-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px;
-            text-align: center;
-            background: #f8f9fa;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .upload-area:hover {
-            background: #e9ecef;
-            border-color: #764ba2;
-        }
-
-        .upload-icon {
-            font-size: 4em;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .result-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .result-section h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-
-        .result-section ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .result-section li {
-            padding: 8px 0;
-            padding-left: 25px;
-            position: relative;
-        }
-
-        .result-section li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #667eea;
-            font-weight: bold;
-        }
-
-        .course-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            border-left: 4px solid #764ba2;
-        }
-
-        .assessment-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .assessment-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .assessment-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-        }
-
-        .question-container {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .option {
-            padding: 12px;
-            margin: 8px 0;
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .option:hover {
-            border-color: #667eea;
-            background: #f0f0ff;
-        }
-
-        .option.selected {
-            border-color: #667eea;
-            background: #e3f2fd;
-        }
-
-        .submit-button {
-            padding: 15px 40px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.1em;
-            font-weight: 600;
-            margin-top: 20px;
-            transition: all 0.3s;
-        }
-
-        .submit-button:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
-        }
-
-        .score-display {
-            text-align: center;
-            padding: 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 15px;
-            margin-bottom: 30px;
-        }
-
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border-left: 4px solid #c62828;
-        }
-
-        .success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border-left: 4px solid #2e7d32;
-        }
-    </style>
+/* MISC */
+.fb{padding:12px 14px;border-radius:8px;font-size:0.83rem;margin-top:14px;}
+.fb.error{background:rgba(255,94,94,0.07);color:var(--red);border:1px solid rgba(255,94,94,0.2);}
+.fb.success{background:rgba(74,222,128,0.07);color:var(--green);border:1px solid rgba(74,222,128,0.2);}
+.empty{text-align:center;padding:60px 20px;color:var(--text3);}
+.empty-glyph{font-size:2.5rem;margin-bottom:12px;opacity:0.4;}
+.empty p{font-size:0.85rem;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="user-info" id="userInfo" style="display: none;">
-                <span id="userName"></span>
-                <button onclick="logout()">Logout</button>
-            </div>
-            <h1>🤖 AI Resume Analyzer</h1>
-            <p>Get intelligent feedback and skill assessments powered by Gemini AI</p>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="bgCanvas"></canvas>
+
+<div class="shell">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-wrap">
+      <div class="sidebar-logo">R</div>
+      <div class="sidebar-brand-text">
+        <span class="brand-name">ResumeAI</span>
+        <span class="brand-sub">Career Intelligence</span>
+      </div>
+    </div>
+    <nav class="nav-section" id="sidebarNav" style="display:none">
+      <button class="nav-item active" onclick="switchTab('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('resume')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Resume Analysis</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('assessments')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Assessments</span>
+      </button>
+    </nav>
+    <div class="sidebar-bottom" id="sidebarBottom" style="display:none">
+      <div class="user-mini">
+        <div class="avatar" id="avatarLetter">U</div>
+        <div>
+          <div class="user-name-sm" id="userNameSm"></div>
+          <div class="user-role-sm">Candidate</div>
         </div>
+        <button class="logout-icon" onclick="logout()" title="Logout">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
 
-        <!-- Authentication Section -->
-        <div id="authSection" class="auth-container">
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
-                <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
-            </div>
+  <main class="main">
 
-            <div id="loginForm">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
-                </div>
-                <button class="submit-btn" onclick="login()">Login</button>
-                <div id="loginError"></div>
-            </div>
-
-            <div id="signupForm" style="display: none;">
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="signupName" placeholder="Enter your name" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="signupEmail" placeholder="Enter your email" required>
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="signupPassword" placeholder="Create a password" required>
-                </div>
-                <button class="submit-btn" onclick="signup()">Sign Up</button>
-                <div id="signupError"></div>
-            </div>
+    <!-- AUTH -->
+    <div id="authSection">
+      <div class="auth-bg-ring" style="width:400px;height:400px;top:50%;left:50%;transform:translate(-50%,-50%)"></div>
+      <div class="auth-bg-ring" style="width:700px;height:700px;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:1s"></div>
+      <div class="auth-bg-ring" style="width:1050px;height:1050px;top:50%;left:50%;transform:translate(-50%,-50%);animation-delay:2s"></div>
+      <div class="auth-content">
+        <div class="auth-top">
+          <div class="auth-logo">R</div>
+          <h2 class="auth-title">Your career,<br><em>intelligently analyzed</em></h2>
+          <p class="auth-sub">Upload your resume, get deep AI feedback, and validate your skills with curated assessments.</p>
         </div>
-
-        <!-- Main Content (shown after login) -->
-        <div id="mainContent" class="main-content">
-            <div class="tabs">
-                <button class="tab-button active" onclick="switchTab('dashboard')">Dashboard</button>
-                <button class="tab-button" onclick="switchTab('resume')">Resume Analysis</button>
-                <button class="tab-button" onclick="switchTab('assessments')">Skill Assessments</button>
-            </div>
-
-            <!-- Dashboard Tab -->
-            <div id="dashboard-tab" class="tab-content active">
-                <div class="dashboard-card">
-                    <h2 style="color: #667eea; margin-bottom: 20px;">📊 Your Latest Assessment Scores</h2>
-                    <div id="scoresContainer">
-                        <p>Loading your scores...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resume Analysis Tab -->
-            <div id="resume-tab" class="tab-content">
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                    <div class="upload-icon">📄</div>
-                    <h2>Upload Your Resume</h2>
-                    <p>Drag and drop your resume here or click to browse</p>
-                    <p style="font-size: 0.9em; color: #666; margin-top: 10px;">Supported formats: PDF, TXT</p>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt" onchange="handleFileSelect(event)">
-                </div>
-
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <p>Analyzing your resume with AI...</p>
-                </div>
-
-                <div id="analysisResult"></div>
-            </div>
-
-            <!-- Skill Assessments Tab -->
-            <div id="assessments-tab" class="tab-content">
-                <h2 style="text-align: center; color: #667eea; margin-bottom: 30px;">Choose an Assessment</h2>
-                <div class="assessment-list" id="assessmentList"></div>
-                <div id="assessmentContent"></div>
-            </div>
+        <div class="auth-card">
+          <div class="auth-tabs">
+            <button class="auth-tab active" onclick="switchAuthTab('login')">Sign in</button>
+            <button class="auth-tab" onclick="switchAuthTab('signup')">Register</button>
+          </div>
+          <div id="loginForm">
+            <div class="field"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"></div>
+            <div class="field"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+            <button class="btn-primary" onclick="login()">Sign in →</button>
+            <div id="loginError"></div>
+          </div>
+          <div id="signupForm" style="display:none">
+            <div class="field"><label>Full Name</label><input type="text" id="signupName" placeholder="Your name"></div>
+            <div class="field"><label>Email</label><input type="email" id="signupEmail" placeholder="you@example.com"></div>
+            <div class="field"><label>Password</label><input type="password" id="signupPassword" placeholder="Create a password"></div>
+            <button class="btn-primary" onclick="signup()">Create account →</button>
+            <div id="signupError"></div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <script>
-        let currentUser = null;
-        let currentAssessment = null;
-        let currentAnswers = {};
+    <!-- APP SHELL -->
+    <div id="mainContent" class="main-content">
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-eyebrow" id="topbarEyebrow">Overview</div>
+          <div class="topbar-title" id="topbarTitle">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-badge"><div class="pulse-dot"></div>AI Online</div>
+        </div>
+      </div>
 
-        // Check authentication on page load
-        checkAuth();
+      <div style="flex:1;overflow-y:auto">
 
-        function checkAuth() {
-            fetch('/api/auth/check', {
-                credentials: 'include'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.authenticated) {
-                    currentUser = data.user;
-                    showMainContent();
-                    loadScores();
-                } else {
-                    showAuth();
-                }
-            })
-            .catch(() => {
-                showAuth();
-            });
-        }
+        <!-- DASHBOARD -->
+        <div id="dashboard-tab" class="tab-content active">
+          <div class="page-body">
+            <div class="dash-grid">
+              <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-label">Assessments Taken</div><div class="stat-value" id="statCount">—</div><div class="stat-delta neutral">Total completed</div></div>
+              <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-label">Best Score</div><div class="stat-value" id="statBest">—<span class="unit">%</span></div><div class="stat-delta up">Personal best</div></div>
+              <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-label">Average Score</div><div class="stat-value" id="statAvg">—<span class="unit">%</span></div><div class="stat-delta neutral">All assessments</div></div>
+            </div>
+            <div class="scores-section">
+              <div class="section-head"><h3>Assessment History</h3><span class="section-tag" id="scoreCount">Loading…</span></div>
+              <div id="scoresContainer"><div class="empty"><div class="empty-glyph">📋</div><p>Loading…</p></div></div>
+            </div>
+          </div>
+        </div>
 
-        function showAuth() {
-            document.getElementById('authSection').style.display = 'block';
-            document.getElementById('mainContent').classList.remove('active');
-            document.getElementById('userInfo').style.display = 'none';
-        }
+        <!-- RESUME -->
+        <div id="resume-tab" class="tab-content">
+          <div class="page-body">
+            <div class="upload-wrapper">
+              <div class="upload-zone" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon-ring">📄</div>
+                <h3>Drop your resume here</h3>
+                <p>Click to browse or drag &amp; drop your file<br>and our AI will provide deep analysis</p>
+                <div class="format-tags"><span class="ftag">.PDF</span><span class="ftag">.TXT</span></div>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.txt" onchange="handleFileSelect(event)">
+              </div>
+              <div class="upload-tips">
+                <div class="tips-head">Tips for best results</div>
+                <div class="tip-item"><div class="tip-num">1</div><div class="tip-text">Use a clean, ATS-friendly format with clear section headers</div></div>
+                <div class="tip-item"><div class="tip-num">2</div><div class="tip-text">Include quantified achievements with numbers and impact metrics</div></div>
+                <div class="tip-item"><div class="tip-num">3</div><div class="tip-text">List relevant technical skills and tools prominently</div></div>
+                <div class="tip-item"><div class="tip-num">4</div><div class="tip-text">Keep it to 1–2 pages with consistent formatting throughout</div></div>
+              </div>
+            </div>
+            <div class="loading" id="loading">
+              <div class="ai-loader"><div class="ai-loader-ring"></div><div class="ai-loader-ring"></div><div class="ai-loader-ring"></div></div>
+              <div class="loading-label">Analyzing your resume with AI…</div>
+              <div class="loading-steps" id="loadingSteps"></div>
+            </div>
+            <div id="analysisResult"></div>
+          </div>
+        </div>
 
-        function showMainContent() {
-            document.getElementById('authSection').style.display = 'none';
-            document.getElementById('mainContent').classList.add('active');
-            document.getElementById('userInfo').style.display = 'block';
-            document.getElementById('userName').textContent = `Welcome, ${currentUser.name || currentUser.email}!`;
-            loadAssessments();
-        }
+        <!-- ASSESSMENTS -->
+        <div id="assessments-tab" class="tab-content">
+          <div class="page-body">
+            <div id="assessmentList" class="assess-grid"></div>
+            <div id="assessmentContent"></div>
+          </div>
+        </div>
 
-        function switchAuthTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            if (tab === 'login') {
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('signupForm').style.display = 'none';
-                document.querySelectorAll('.auth-tab')[0].classList.add('active');
-            } else {
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('signupForm').style.display = 'block';
-                document.querySelectorAll('.auth-tab')[1].classList.add('active');
-            }
-        }
+      </div>
+    </div>
 
-        function login() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorDiv = document.getElementById('loginError');
+  </main>
+</div>
 
-            fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ email, password })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentUser = data.user;
-                    showMainContent();
-                    loadScores();
-                } else {
-                    errorDiv.innerHTML = `<div class="error">${data.error}</div>`;
-                }
-            })
-            .catch(error => {
-                errorDiv.innerHTML = `<div class="error">Login failed: ${error.message}</div>`;
-            });
-        }
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c9a84c"/>
+      <stop offset="100%" stop-color="#e8c97a"/>
+    </linearGradient>
+  </defs>
+</svg>
 
-        function signup() {
-            const name = document.getElementById('signupName').value;
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const errorDiv = document.getElementById('signupError');
+<script>
+/* CURSOR */
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX;my=e.clientY;
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+});
+(function animRing(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
 
-            fetch('/api/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ name, email, password })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentUser = data.user;
-                    showMainContent();
-                    loadScores();
-                } else {
-                    errorDiv.innerHTML = `<div class="error">${data.error}</div>`;
-                }
-            })
-            .catch(error => {
-                errorDiv.innerHTML = `<div class="error">Signup failed: ${error.message}</div>`;
-            });
-        }
+/* PARTICLES */
+(function(){
+  const canvas=document.getElementById('bgCanvas'),ctx=canvas.getContext('2d');
+  let W,H,pts=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  class P{
+    constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.3;this.vy=(Math.random()-.5)*.3;this.r=Math.random()*1.5+.3;this.o=Math.random()*.35+.05;this.c=Math.random()<.3?'201,168,76':'255,255,255';}
+    tick(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;}
+    draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle=`rgba(${this.c},${this.o})`;ctx.fill();}
+  }
+  for(let i=0;i<100;i++)pts.push(new P());
+  function loop(){
+    ctx.clearRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){
+      pts[i].tick();pts[i].draw();
+      for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<110){ctx.beginPath();ctx.strokeStyle=`rgba(201,168,76,${.05*(1-d/110)})`;ctx.lineWidth=.5;ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
 
-        function logout() {
-            fetch('/api/auth/logout', {
-                method: 'POST',
-                credentials: 'include'
-            })
-            .then(() => {
-                currentUser = null;
-                showAuth();
-            });
-        }
+/* APP */
+let currentUser=null,currentAssessment=null,currentAnswers={};
+checkAuth();
 
-        function loadScores() {
-            fetch('/api/user/scores', {
-                credentials: 'include'
-            })
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('scoresContainer');
-                if (data.scores && data.scores.length > 0) {
-                    container.innerHTML = data.scores.map(score => `
-                        <div class="score-item">
-                            <div>
-                                <strong>${score.assessment_title}</strong>
-                                <p style="color: #666; font-size: 0.9em; margin-top: 5px;">
-                                    ${score.correct_count} out of ${score.total_questions} correct
-                                </p>
-                            </div>
-                            <div class="score-value">${score.score}%</div>
-                        </div>
-                    `).join('');
-                } else {
-                    container.innerHTML = '<p style="color: #666;">No assessment scores yet. Take an assessment to see your scores here!</p>';
-                }
-            })
-            .catch(error => {
-                document.getElementById('scoresContainer').innerHTML = '<p style="color: #c62828;">Error loading scores</p>';
-            });
-        }
+function checkAuth(){
+  fetch('/api/auth/check',{credentials:'include'}).then(r=>r.json())
+    .then(d=>{if(d.authenticated){currentUser=d.user;showMain();loadScores();}else showAuth();})
+    .catch(()=>showAuth());
+}
 
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
+function showAuth(){
+  document.getElementById('authSection').style.display='flex';
+  document.getElementById('mainContent').classList.remove('active');
+  document.getElementById('sidebarNav').style.display='none';
+  document.getElementById('sidebarBottom').style.display='none';
+}
 
-            if (tab === 'dashboard') {
-                document.getElementById('dashboard-tab').classList.add('active');
-                document.querySelectorAll('.tab-button')[0].classList.add('active');
-                loadScores();
-            } else if (tab === 'resume') {
-                document.getElementById('resume-tab').classList.add('active');
-                document.querySelectorAll('.tab-button')[1].classList.add('active');
-            } else {
-                document.getElementById('assessments-tab').classList.add('active');
-                document.querySelectorAll('.tab-button')[2].classList.add('active');
-            }
-        }
+function showMain(){
+  document.getElementById('authSection').style.display='none';
+  document.getElementById('mainContent').classList.add('active');
+  document.getElementById('sidebarNav').style.display='flex';
+  document.getElementById('sidebarBottom').style.display='flex';
+  const name=currentUser.name||currentUser.email;
+  document.getElementById('userNameSm').textContent=name;
+  document.getElementById('avatarLetter').textContent=name.charAt(0).toUpperCase();
+  loadAssessments();
+}
 
-        function loadAssessments() {
-            fetch('/api/assessments', {
-                credentials: 'include'
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    showAuth();
-                    return;
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.assessments) {
-                    const listDiv = document.getElementById('assessmentList');
-                    listDiv.innerHTML = data.assessments.map(assessment => `
-                        <div class="assessment-card" onclick="loadAssessment('${assessment.id}')">
-                            <h3>${assessment.title}</h3>
-                            <p>Test your knowledge with MCQ questions</p>
-                        </div>
-                    `).join('');
-                }
-            });
-        }
+function switchAuthTab(tab){
+  const tabs=document.querySelectorAll('.auth-tab');
+  if(tab==='login'){document.getElementById('loginForm').style.display='block';document.getElementById('signupForm').style.display='none';tabs[0].classList.add('active');tabs[1].classList.remove('active');}
+  else{document.getElementById('loginForm').style.display='none';document.getElementById('signupForm').style.display='block';tabs[1].classList.add('active');tabs[0].classList.remove('active');}
+}
 
-        // File upload handling
-        const uploadArea = document.getElementById('uploadArea');
-        if (uploadArea) {
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
+function login(){
+  const email=document.getElementById('loginEmail').value,password=document.getElementById('loginPassword').value;
+  fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email,password})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){currentUser=d.user;showMain();loadScores();}
+      else document.getElementById('loginError').innerHTML=`<div class="fb error">${d.error}</div>`;
+    }).catch(e=>{document.getElementById('loginError').innerHTML=`<div class="fb error">Login failed: ${e.message}</div>`;});
+}
 
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
+function signup(){
+  const name=document.getElementById('signupName').value,email=document.getElementById('signupEmail').value,password=document.getElementById('signupPassword').value;
+  fetch('/api/auth/signup',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({name,email,password})})
+    .then(r=>r.json()).then(d=>{
+      if(d.success){currentUser=d.user;showMain();loadScores();}
+      else document.getElementById('signupError').innerHTML=`<div class="fb error">${d.error}</div>`;
+    }).catch(e=>{document.getElementById('signupError').innerHTML=`<div class="fb error">Signup failed: ${e.message}</div>`;});
+}
 
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    handleFile(files[0]);
-                }
-            });
-        }
+function logout(){fetch('/api/auth/logout',{method:'POST',credentials:'include'}).then(()=>{currentUser=null;showAuth();});}
 
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (file) {
-                handleFile(file);
-            }
-        }
+function loadScores(){
+  fetch('/api/user/scores',{credentials:'include'}).then(r=>r.json()).then(data=>{
+    const container=document.getElementById('scoresContainer');
+    const scores=data.scores||[];
+    document.getElementById('scoreCount').textContent=scores.length+' records';
+    document.getElementById('statCount').textContent=scores.length||'0';
+    if(scores.length>0){
+      const best=Math.max(...scores.map(s=>s.score));
+      const avg=Math.round(scores.reduce((a,s)=>a+s.score,0)/scores.length);
+      animCounter('statBest',best);animCounter('statAvg',avg);
+    } else {
+      document.getElementById('statBest').innerHTML='—<span class="unit">%</span>';
+      document.getElementById('statAvg').innerHTML='—<span class="unit">%</span>';
+    }
+    if(scores.length>0){
+      container.innerHTML=scores.map(score=>{
+        const g=score.score>=90?'S':score.score>=80?'A':score.score>=70?'B':score.score>=60?'C':'D';
+        const gc=score.score>=80?'#4ade80':score.score>=60?'#c9a84c':'#ff5e5e';
+        return `<div class="score-row">
+          <div class="score-bar-wrap">
+            <div class="score-bar-label"><span class="score-bar-name">${score.assessment_title}</span><span class="score-bar-pct">${score.score}%</span></div>
+            <div class="score-bar-label" style="margin-bottom:8px"><span class="score-bar-sub">${score.correct_count} / ${score.total_questions} correct</span></div>
+            <div class="bar-track"><div class="bar-fill" data-pct="${score.score}"></div></div>
+          </div>
+          <div class="score-grade" style="background:${gc}18;color:${gc};border:1px solid ${gc}30">${g}</div>
+        </div>`;
+      }).join('');
+      setTimeout(()=>document.querySelectorAll('.bar-fill').forEach(b=>{b.style.width=b.dataset.pct+'%';}),100);
+    } else {
+      container.innerHTML=`<div class="empty"><div class="empty-glyph">🏆</div><p>No scores yet — take an assessment to begin!</p></div>`;
+    }
+  }).catch(()=>{document.getElementById('scoresContainer').innerHTML=`<div class="fb error">Error loading scores</div>`;});
+}
 
-        function handleFile(file) {
-            const formData = new FormData();
-            formData.append('file', file);
+function animCounter(id,target){
+  const el=document.getElementById(id);let n=0;const step=Math.ceil(target/40);
+  const t=setInterval(()=>{n=Math.min(n+step,target);el.innerHTML=n+'<span class="unit">%</span>';if(n>=target)clearInterval(t);},25);
+}
 
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('analysisResult').innerHTML = '';
+const tabTitles={dashboard:['Overview','Dashboard'],resume:['Analysis','Resume Review'],assessments:['Tests','Skill Assessments']};
 
-            fetch('/api/upload-resume', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    showAuth();
-                    return;
-                }
-                return response.json();
-            })
-            .then(data => {
-                document.getElementById('loading').style.display = 'none';
-                if (data.error) {
-                    document.getElementById('analysisResult').innerHTML = `<div class="error">${data.error}</div>`;
-                } else {
-                    displayAnalysis(data.analysis);
-                }
-            })
-            .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('analysisResult').innerHTML = `<div class="error">Error: ${error.message}</div>`;
-            });
-        }
+function switchTab(tab){
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  const idx={dashboard:0,resume:1,assessments:2};
+  document.getElementById(`${tab}-tab`).classList.add('active');
+  document.querySelectorAll('.nav-item')[idx[tab]].classList.add('active');
+  document.getElementById('topbarEyebrow').textContent=tabTitles[tab][0];
+  document.getElementById('topbarTitle').textContent=tabTitles[tab][1];
+  if(tab==='dashboard')loadScores();
+}
 
-        function displayAnalysis(analysis) {
-            const resultDiv = document.getElementById('analysisResult');
-            let html = '';
+function loadAssessments(){
+  fetch('/api/assessments',{credentials:'include'})
+    .then(r=>{if(r.status===401){showAuth();return;}return r.json();})
+    .then(data=>{
+      if(!data||!data.assessments)return;
+      const icons=['🧠','💻','📐','🔬','🎯','📊','🌐','⚡'];
+      document.getElementById('assessmentList').innerHTML=data.assessments.map((a,i)=>`
+        <div class="acard" onclick="loadAssessment('${a.id}')" style="animation-delay:${i*0.05}s">
+          <span class="acard-icon">${icons[i%icons.length]}</span>
+          <h3>${a.title}</h3>
+          <p>MCQ skill assessment</p>
+          <span class="acard-tag">Start →</span>
+          <span class="acard-arrow">↗</span>
+        </div>`).join('');
+    });
+}
 
-            if (analysis.error) {
-                html = `<div class="error">${analysis.error}</div>`;
-            } else {
-                html = `
-                    <div class="result-section">
-                        <h3>📊 Overall Assessment</h3>
-                        <p>${analysis.overall_assessment || 'Analysis completed'}</p>
-                    </div>
-                    <div class="result-section">
-                        <h3>✨ Strengths</h3>
-                        <ul>${(analysis.strengths || []).map(s => `<li>${s}</li>`).join('')}</ul>
-                    </div>
-                    <div class="result-section">
-                        <h3>📈 Areas for Improvement</h3>
-                        <ul>${(analysis.improvements || []).map(i => `<li>${i}</li>`).join('')}</ul>
-                    </div>
-                    <div class="result-section">
-                        <h3>🎯 Missing Skills</h3>
-                        <ul>${(analysis.missing_skills || []).map(s => `<li>${s}</li>`).join('')}</ul>
-                    </div>
-                    <div class="result-section">
-                        <h3>📚 Recommended Courses</h3>
-                        ${(analysis.recommended_courses || []).map(course => `
-                            <div class="course-card">
-                                <h4>${course.name}</h4>
-                                <p><strong>Description:</strong> ${course.description}</p>
-                                <p><strong>Why recommended:</strong> ${course.reason}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="result-section">
-                        <h3>💼 Career Suggestions</h3>
-                        <ul>${(analysis.career_suggestions || []).map(s => `<li>${s}</li>`).join('')}</ul>
-                    </div>
-                `;
-            }
+const uploadArea=document.getElementById('uploadArea');
+if(uploadArea){
+  uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('dragover');});
+  uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('dragover');if(e.dataTransfer.files.length>0)handleFile(e.dataTransfer.files[0]);});
+}
 
-            resultDiv.innerHTML = html;
-        }
+function handleFileSelect(e){if(e.target.files[0])handleFile(e.target.files[0]);}
 
-        function loadAssessment(assessmentId) {
-            currentAssessment = assessmentId;
-            currentAnswers = {};
-            
-            fetch(`/api/assessments/${assessmentId}`, {
-                credentials: 'include'
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    showAuth();
-                    return;
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data) return;
-                const contentDiv = document.getElementById('assessmentContent');
-                contentDiv.innerHTML = `
-                    <h2 style="text-align: center; color: #667eea; margin: 30px 0;">${data.title}</h2>
-                    <div id="questionsContainer"></div>
-                    <div style="text-align: center;">
-                        <button class="submit-button" onclick="submitAssessment()">Submit Assessment</button>
-                    </div>
-                `;
+const loadMsgs=['Parsing document structure…','Extracting skills & experience…','Running AI analysis…','Generating recommendations…'];
 
-                const questionsDiv = document.getElementById('questionsContainer');
-                questionsDiv.innerHTML = data.questions.map((q) => `
-                    <div class="question-container">
-                        <h3>Question ${q.id}: ${q.question}</h3>
-                        ${q.options.map((option, oIndex) => `
-                            <div class="option" onclick="selectAnswer(${q.id}, ${oIndex})" id="opt-${q.id}-${oIndex}">
-                                ${String.fromCharCode(65 + oIndex)}. ${option}
-                            </div>
-                        `).join('')}
-                    </div>
-                `).join('');
+function handleFile(file){
+  const fd=new FormData();fd.append('file',file);
+  document.getElementById('loading').style.display='block';
+  document.getElementById('analysisResult').innerHTML='';
+  const stepsEl=document.getElementById('loadingSteps');stepsEl.innerHTML='';
+  loadMsgs.forEach((msg,i)=>setTimeout(()=>{const s=document.createElement('div');s.className='loading-step';s.style.animationDelay='0s';s.textContent='> '+msg;stepsEl.appendChild(s);},i*800));
+  fetch('/api/upload-resume',{method:'POST',credentials:'include',body:fd})
+    .then(r=>{if(r.status===401){showAuth();return;}return r.json();})
+    .then(data=>{
+      document.getElementById('loading').style.display='none';
+      if(!data)return;
+      if(data.error)document.getElementById('analysisResult').innerHTML=`<div class="fb error">${data.error}</div>`;
+      else displayAnalysis(data.analysis);
+    }).catch(e=>{document.getElementById('loading').style.display='none';document.getElementById('analysisResult').innerHTML=`<div class="fb error">Error: ${e.message}</div>`;});
+}
 
-                document.getElementById('assessmentList').style.display = 'none';
-            });
-        }
+function displayAnalysis(analysis){
+  const el=document.getElementById('analysisResult');
+  if(analysis.error){el.innerHTML=`<div class="fb error">${analysis.error}</div>`;return;}
+  const skillTags=(analysis.missing_skills||[]).map(s=>`<span class="skill-tag">✕ ${s}</span>`).join('');
+  const careerTags=(analysis.career_suggestions||[]).map(s=>`<span class="career-tag">→ ${s}</span>`).join('');
+  el.innerHTML=`
+  <div class="results-layout">
+    <div class="result-card full-width">
+      <div class="result-card-header"><div class="r-icon">📊</div><div class="r-title">Overall Assessment</div></div>
+      <div class="r-body"><p>${analysis.overall_assessment||'Analysis completed.'}</p></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-header"><div class="r-icon">✨</div><div class="r-title">Strengths</div></div>
+      <div class="r-body"><ul class="r-list">${(analysis.strengths||[]).map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-header"><div class="r-icon">📈</div><div class="r-title">Areas for Improvement</div></div>
+      <div class="r-body"><ul class="r-list">${(analysis.improvements||[]).map(i=>`<li>${i}</li>`).join('')}</ul></div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-header"><div class="r-icon">🎯</div><div class="r-title">Missing Skills</div></div>
+      <div class="r-body">${skillTags||'<p style="color:var(--text3)">No critical gaps found.</p>'}</div>
+    </div>
+    <div class="result-card">
+      <div class="result-card-header"><div class="r-icon">💼</div><div class="r-title">Career Suggestions</div></div>
+      <div class="r-body">${careerTags}</div>
+    </div>
+    <div class="result-card full-width">
+      <div class="result-card-header"><div class="r-icon">📚</div><div class="r-title">Recommended Courses</div></div>
+      <div class="r-body">
+        ${(analysis.recommended_courses||[]).map(c=>`
+          <div class="course-item">
+            <div class="course-name">${c.name}</div>
+            <div class="course-desc">${c.description}</div>
+            <div class="course-reason" style="margin-top:4px;color:var(--gold);opacity:0.8">↳ ${c.reason}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
 
-        function selectAnswer(questionId, optionIndex) {
-            currentAnswers[questionId] = optionIndex;
-            const questionContainer = document.querySelector(`#opt-${questionId}-0`).closest('.question-container');
-            questionContainer.querySelectorAll('.option').forEach(opt => {
-                opt.classList.remove('selected');
-            });
-            document.getElementById(`opt-${questionId}-${optionIndex}`).classList.add('selected');
-        }
+function loadAssessment(id){
+  currentAssessment=id;currentAnswers={};
+  fetch(`/api/assessments/${id}`,{credentials:'include'})
+    .then(r=>{if(r.status===401){showAuth();return;}return r.json();})
+    .then(data=>{
+      if(!data)return;
+      document.getElementById('assessmentList').style.display='none';
+      const total=data.questions.length;
+      document.getElementById('assessmentContent').innerHTML=`
+        <div class="quiz-topbar">
+          <button class="back-btn" onclick="backToAssessments()">← Back</button>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quizProgress"></div></div>
+          <div class="quiz-count"><span id="answeredCount">0</span>/${total}</div>
+        </div>
+        <div id="questionsContainer"></div>
+        <div class="quiz-footer">
+          <button class="btn-submit" onclick="submitAssessment()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Submit Assessment
+          </button>
+        </div>`;
+      document.getElementById('questionsContainer').innerHTML=data.questions.map((q,qi)=>`
+        <div class="qcard" style="animation-delay:${qi*0.04}s">
+          <div class="q-num">Question ${q.id} of ${total}</div>
+          <div class="q-text">${q.question}</div>
+          ${q.options.map((opt,oi)=>`
+            <div class="option" onclick="selectAnswer(${q.id},${oi},${total})" id="opt-${q.id}-${oi}">
+              <span class="opt-letter">${String.fromCharCode(65+oi)}</span>${opt}
+            </div>`).join('')}
+        </div>`).join('');
+    });
+}
 
-        function submitAssessment() {
-            if (!currentAssessment) return;
+function selectAnswer(qid,oi,total){
+  currentAnswers[qid]=oi;
+  const qcard=document.getElementById(`opt-${qid}-0`).closest('.qcard');
+  qcard.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+  document.getElementById(`opt-${qid}-${oi}`).classList.add('selected');
+  const answered=Object.keys(currentAnswers).length;
+  document.getElementById('answeredCount').textContent=answered;
+  document.getElementById('quizProgress').style.width=(answered/total*100)+'%';
+}
 
-            fetch(`/api/assessments/${currentAssessment}/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ answers: currentAnswers })
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    showAuth();
-                    return;
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data) {
-                    displayResults(data);
-                    loadScores(); // Refresh scores
-                }
-            });
-        }
+function backToAssessments(){
+  document.getElementById('assessmentList').style.display='grid';
+  document.getElementById('assessmentContent').innerHTML='';
+  loadAssessments();
+}
 
-        function displayResults(data) {
-            const contentDiv = document.getElementById('assessmentContent');
-            let html = `
-                <div class="score-display">
-                    <h2>Your Score: ${data.score}%</h2>
-                    <p>You got ${data.correct_count} out of ${data.total_questions} questions correct</p>
-                </div>
-            `;
+function submitAssessment(){
+  if(!currentAssessment)return;
+  fetch(`/api/assessments/${currentAssessment}/submit`,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({answers:currentAnswers})})
+    .then(r=>{if(r.status===401){showAuth();return;}return r.json();})
+    .then(data=>{if(data){displayResults(data);loadScores();}});
+}
 
-            data.results.forEach(result => {
-                const optionClass = result.is_correct ? 'correct' : 'incorrect';
-                html += `
-                    <div class="question-container">
-                        <h3>Question ${result.question_id}: ${result.question}</h3>
-                        <div class="option ${optionClass}">
-                            Your Answer: ${String.fromCharCode(65 + result.user_answer)}. ${result.correct_option}
-                            ${result.is_correct ? ' ✓ Correct' : ' ✗ Incorrect'}
-                        </div>
-                        ${!result.is_correct ? `
-                            <div class="option correct">
-                                Correct Answer: ${String.fromCharCode(65 + result.correct_answer)}. ${result.correct_option}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            });
-
-            html += `
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="submit-button" onclick="document.getElementById('assessmentList').style.display='grid'; document.getElementById('assessmentContent').innerHTML=''; loadAssessments();">Take Another Assessment</button>
-                </div>
-            `;
-
-            contentDiv.innerHTML = html;
-        }
-    </script>
+function displayResults(data){
+  const score=data.score;
+  const grade=score>=90?'S Rank':score>=80?'Grade A':score>=70?'Grade B':score>=60?'Grade C':'Grade D';
+  const gc=score>=80?'#4ade80':score>=60?'#c9a84c':'#ff5e5e';
+  const r=48,circ=2*Math.PI*r,offset=circ-(score/100)*circ;
+  let html=`
+    <div class="score-hero">
+      <div class="score-circle">
+        <svg viewBox="0 0 110 110" width="120" height="120">
+          <circle class="score-circle-track" cx="55" cy="55" r="${r}"/>
+          <circle class="score-circle-fill" cx="55" cy="55" r="${r}" stroke-dasharray="${circ}" stroke-dashoffset="${circ}" id="scoreArc"/>
+        </svg>
+        <div class="score-circle-num">
+          <div class="score-big" id="scoreBigNum">0</div>
+          <div class="score-unit">/ 100</div>
+        </div>
+      </div>
+      <div class="score-grade-badge" style="background:${gc}15;color:${gc};border:1px solid ${gc}30">${grade}</div>
+      <p>${data.correct_count} of ${data.total_questions} questions answered correctly</p>
+    </div>`;
+  data.results.forEach(r=>{
+    html+=`<div class="r-answer-card">
+      <div class="q-num">Question ${r.question_id}</div>
+      <div class="q-text">${r.question}</div>
+      <div class="answer-row">
+        <span class="a-pill ${r.is_correct?'a-correct':'a-wrong'}">${r.is_correct?'✓':'✗'} ${String.fromCharCode(65+r.user_answer)}. ${r.correct_option} — ${r.is_correct?'Correct':'Incorrect'}</span>
+        ${!r.is_correct?`<span class="a-pill a-correct">✓ ${String.fromCharCode(65+r.correct_answer)}. ${r.correct_option}</span>`:''}
+      </div>
+    </div>`;
+  });
+  html+=`<div class="quiz-footer"><button class="btn-submit" onclick="backToAssessments();loadAssessments()">Take Another →</button></div>`;
+  document.getElementById('assessmentContent').innerHTML=html;
+  setTimeout(()=>{
+    const arc=document.getElementById('scoreArc');
+    if(arc)arc.style.strokeDashoffset=offset;
+    animCounter('scoreBigNum',score);
+  },200);
+}
+</script>
 </body>
 </html>
